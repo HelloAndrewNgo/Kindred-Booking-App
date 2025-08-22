@@ -101,6 +101,8 @@ Visit `http://localhost:3000/docs` for Swagger UI documentation.
 
 ### Core Endpoints
 
+https://.postman.co/workspace/My-Workspace~99773d94-a8e4-4de1-86bb-9e2f6be39631/collection/7642978-8211866b-ab54-4451-88b7-2b502950881a?action=share&creator=7642978
+
 **Create a Hold**
 ```http
 POST /holds
