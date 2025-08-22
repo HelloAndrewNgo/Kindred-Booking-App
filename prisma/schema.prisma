@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id    Int    @id @default(autoincrement())
+  name  String
+  slots Slot[]
+}
+
+model Slot {
+  id       Int      @id @default(autoincrement())
+  roomId   Int
+  startAt  DateTime
+  endAt    DateTime
+  room     Room     @relation(fields: [roomId], references: [id])
+  holdings Holding[]
+  booking  Booking?
+}
+
+model Holding {
+  id         Int       @id @default(autoincrement())
+  slotId     Int
+  holdToken  String
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  releasedAt DateTime?
+  slot       Slot      @relation(fields: [slotId], references: [id])
+}
+
+model Booking {
+  id        Int      @id @default(autoincrement())
+  slotId    Int      @unique
+  createdAt DateTime @default(now())
+  slot      Slot     @relation(fields: [slotId], references: [id])
+}
+
+model IdempotencyKey {
+  id           Int     @id @default(autoincrement())
+  key          String  @unique
+  method       String
+  path         String
+  createdAt    DateTime @default(now())
+  status       Int?
+  responseJson String?
+}

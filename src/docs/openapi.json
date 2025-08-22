@@ -1,0 +1,255 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Kindred Booking API",
+    "version": "1.0.0",
+    "description": "API for managing rooms, time slots, and booking holds."
+  },
+  "servers": [
+    { "url": "http://localhost:3000" }
+  ],
+  "tags": [
+    { "name": "Public", "description": "Public APIs available to external consumers" },
+    { "name": "Internal", "description": "Internal APIs for administrative operations" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "time": { "type": "string", "format": "date-time" }
+                  },
+                  "required": ["status", "time"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "List rooms",
+        "responses": {
+          "200": {
+            "description": "List of rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rooms": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Room" }
+                    }
+                  },
+                  "required": ["rooms"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/slots": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "List slots with status",
+        "responses": {
+          "200": {
+            "description": "List of slots",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slots": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SlotWithStatus" }
+                    }
+                  },
+                  "required": ["slots"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/rooms": {
+      "post": {
+        "tags": ["Internal"],
+        "summary": "Create a room (Internal)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "name": { "type": "string" } },
+                "required": ["name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Room created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "id": { "type": "integer" } },
+                  "required": ["id"]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/internal/slots": {
+      "post": {
+        "tags": ["Internal"],
+        "summary": "Create a slot (Internal)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "room_id": { "type": "integer" },
+                  "start_at": { "type": "string", "format": "date-time" },
+                  "end_at": { "type": "string", "format": "date-time" }
+                },
+                "required": ["room_id", "start_at", "end_at"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Slot created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "id": { "type": "integer" } },
+                  "required": ["id"]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/internal/holds/cleanup-expired": {
+      "post": {
+        "tags": ["Internal"],
+        "summary": "Mark expired holds as released",
+        "responses": {
+          "200": {
+            "description": "Number of holds updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "updated": { "type": "integer" } },
+                  "required": ["updated"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/holds": {
+      "post": {
+        "tags": ["Public"],
+        "summary": "Create a hold for a slot",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "slot_id": { "type": "integer" } },
+                "required": ["slot_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Hold created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HoldCreated" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/holds/{id}/confirm": {
+      "post": {
+        "tags": ["Public"],
+        "summary": "Confirm a hold and create a booking",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "x-hold-token", "in": "header", "required": true, "schema": { "type": "string" }, "description": "Hold token for authentication" },
+          { "name": "idempotency-key", "in": "header", "required": false, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object", "properties": {} } } }
+        },
+        "responses": {
+          "200": { "description": "Booking created or idempotent response", "content": { "application/json": { "schema": { "type": "object", "properties": { "booking_created": { "type": "boolean", "example": true } }, "required": ["booking_created"] } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "410": { "description": "Hold expired", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/holds/{id}": {
+      "delete": {
+        "tags": ["Public"],
+        "summary": "Release a hold",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "x-hold-token", "in": "header", "required": true, "schema": { "type": "string" }, "description": "Hold token for authentication" }
+        ],
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": {} } } } },
+        "responses": { "204": { "description": "Hold released" }, "401": { "$ref": "#/components/responses/Unauthorized" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": { "type": "object", "properties": { "error": { "type": "string" } }, "required": ["error"] },
+      "Room": { "type": "object", "properties": { "id": { "type": "integer" }, "name": { "type": "string" } }, "required": ["id", "name"] },
+      "SlotWithStatus": { "type": "object", "properties": { "id": { "type": "integer" }, "room_id": { "type": "integer" }, "start_at": { "type": "string", "format": "date-time" }, "end_at": { "type": "string", "format": "date-time" }, "status": { "type": "string", "enum": ["booked", "held", "available"] }, "hold_expires_at": { "type": ["string", "null"], "format": "date-time" } }, "required": ["id", "room_id", "start_at", "end_at", "status"] },
+      "HoldCreated": { "type": "object", "properties": { "id": { "type": "integer" }, "hold_token": { "type": "string" }, "expires_at": { "type": "string", "format": "date-time" } }, "required": ["id", "hold_token", "expires_at"] }
+    },
+    "responses": {
+      "BadRequest": { "description": "Bad Request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NotFound": { "description": "Not Found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Conflict": { "description": "Conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    }
+  }
+}
+
+

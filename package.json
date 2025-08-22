@@ -1,0 +1,32 @@
+{
+  "name": "kindred-booking-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "pretest": "cross-env DATABASE_URL='file:./test.db?connection_limit=1' prisma db push --skip-generate",
+    "test": "cross-env NODE_ENV=test DATABASE_URL='file:./test.db?connection_limit=1' jest --runInBand",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "seed": "node scripts/seed.js",
+    "reset": "node scripts/reset.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@prisma/client": "^6.14.0",
+    "better-sqlite3": "^12.2.0",
+    "express": "^5.1.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.0.0",
+    "jest": "^30.0.5",
+    "prisma": "^6.14.0",
+    "supertest": "^7.1.4"
+  }
+}
